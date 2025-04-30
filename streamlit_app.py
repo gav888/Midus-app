@@ -162,12 +162,12 @@ else:
 st.subheader("Co-occurrence Network")
 G_co = build_network(co_mat, codes, cluster_df['Cluster_Cooccurrence'].values, threshold_cooc)
 html_co = render_pyvis(G_co)
-components.html(html_co, height=700, width=1000)
+components.html(html_co, height=700)
 
 if sem_ok:
     st.subheader("Semantic Similarity Network")
     G_se = build_network(sim_mat, codes, cluster_df['Cluster_Semantic'].values, threshold_sem)
     html_se = render_pyvis(G_se)
-    components.html(html_se, height=700, width=1000)
+    components.html(html_se, height=700)
 
 st.success("Analysis complete!")
