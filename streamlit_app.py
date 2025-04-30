@@ -11,8 +11,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.colors
 from huggingface_hub import login
 login(token=st.secrets["HUGGINGFACEHUB_API_TOKEN"])
-# then your existing load_model() will work:
-model = SentenceTransformer('all-MiniLM-L6-v2')
+
+
 
 
 # --- Page Configuration & Styling ---
