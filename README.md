@@ -1,6 +1,6 @@
-# 🎈 Blank app template
+# MIDUS Project APP development playground
 
-A simple Streamlit app template for you to modify!
+A testing playground for the MIDUS project app
 
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
 
