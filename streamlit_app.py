@@ -30,7 +30,7 @@ def load_model():
     SentenceTransformerCls = getattr(module, 'SentenceTransformer')
     return SentenceTransformerCls('all-MiniLM-L6-v2')
 
-# Compute similarities and cluster labels
+# Compute similarity matrices and cluster labels
 @st.cache_data
 def compute_semantics_and_clusters(df_codes: pd.DataFrame, n_clusters: int):
     codes = df_codes.columns.tolist()
@@ -121,7 +121,7 @@ def render_pyvis(G: nx.Graph, height="700px", width="100%"):
 
 # Sidebar controls
 st.sidebar.header("Settings")
-threshold_cooc = st.sidebar.slider("Co-occurrence threshold", 0, 20, 5)
+threshold_cooc = st.sidebar.slider("Co-occurrence threshold (raw)", 0, 20, 5)
 threshold_sem = st.sidebar.slider("Semantic similarity threshold", 0.0, 1.0, 0.4, step=0.05)
 threshold_hybrid = st.sidebar.slider("Hybrid similarity threshold", 0.0, 1.0, 0.5, step=0.05)
 n_clusters = st.sidebar.slider("Number of clusters", 2, 10, 5)
@@ -159,6 +159,11 @@ with st.expander("View code matrix"):
 # Compute semantics and clusters
 with st.spinner("Computing..."):
     co_mat, sim_mat, hybrid_sim, cluster_df, sim_df, sem_ok = compute_semantics_and_clusters(df_codes, n_clusters)
+    # Normalize co-occurrence for display
+    max_co = co_mat.max() if co_mat.size else 1
+    co_norm = co_mat / max_co if max_co > 0 else co_mat
+    # Convert raw threshold to normalized
+    threshold_co_norm = threshold_cooc / max_co if max_co > 0 else 0
 
 # Display cluster assignments
 st.subheader("Cluster Assignments")
@@ -171,9 +176,9 @@ if sem_ok:
     st.dataframe(sim_df.head(10))
     st.download_button("Download similarities", sim_df.head(10).to_csv(index=False), "similarities.csv")
 
-# Render co-occurrence network
-st.subheader("Co-occurrence Network")
-G_co = build_network(co_mat, code_cols, cluster_df['Cluster_Cooccurrence'].values, threshold_cooc)
+# Render co-occurrence network (normalized)
+st.subheader("Co-occurrence Network (normalized)")
+G_co = build_network(co_norm, code_cols, cluster_df['Cluster_Cooccurrence'].values, threshold_co_norm)
 components.html(render_pyvis(G_co), height=700)
 
 # Render semantic network
@@ -191,8 +196,10 @@ components.html(render_pyvis(G_hy), height=700)
 st.subheader("Network Similarities (Jaccard)")
 def edge_set(G): return {frozenset(e) for e in G.edges()}
 e_co = edge_set(G_co)
-if sem_ok: e_se = edge_set(G_se)
+if sem_ok: 
+    e_se = edge_set(G_se)
 e_hy = edge_set(G_hy)
-st.write(f"Co-occurrence vs Semantic: {len(e_co & e_se)/len(e_co | e_se):.3f}" if sem_ok else "")
 st.write(f"Co-occurrence vs Hybrid: {len(e_co & e_hy)/len(e_co | e_hy):.3f}")
-st.write(f"Semantic vs Hybrid: {len(e_se & e_hy)/len(e_se | e_hy):.3f}" if sem_ok else "")
+if sem_ok:
+    st.write(f"Co-occurrence vs Semantic: {len(e_co & e_se)/len(e_co | e_se):.3f}")
+    st.write(f"Semantic vs Hybrid: {len(e_se & e_hy)/len(e_se | e_hy):.3f}")
