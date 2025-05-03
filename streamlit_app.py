@@ -4,7 +4,7 @@ import numpy as np
 import importlib
 import networkx as nx
 import seaborn as sns
-import matplotlib.colors
+import matplotlib.colors as mcolors
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import cosine_similarity
 from huggingface_hub import login
@@ -23,22 +23,22 @@ st.set_page_config(
 )
 st.title("MIDUS Codes Clustering & Semantic Networks")
 
-# Caching: load model once per session
+# Cache the model loader
 @st.cache_resource
 def load_model():
     module = importlib.import_module('sentence_transformers')
     SentenceTransformerCls = getattr(module, 'SentenceTransformer')
     return SentenceTransformerCls('all-MiniLM-L6-v2')
 
-# Compute similarity matrices and cluster labels
+# Compute similarities and cluster labels
 @st.cache_data
 def compute_semantics_and_clusters(df_codes: pd.DataFrame, n_clusters: int):
     codes = df_codes.columns.tolist()
-    # Co-occurrence
+    # Co-occurrence matrix
     co_mat = df_codes.T.dot(df_codes).values
     np.fill_diagonal(co_mat, 0)
 
-    # Semantic embeddings
+    # Semantic embeddings and similarity
     try:
         model = load_model()
         embeddings = model.encode(codes)
@@ -62,7 +62,7 @@ def compute_semantics_and_clusters(df_codes: pd.DataFrame, n_clusters: int):
     if sem_ok:
         alpha = 0.5
         norm_cooc = co_mat / co_mat.max()
-        hybrid_sim = alpha * norm_co_mat + (1 - alpha) * sim_mat
+        hybrid_sim = alpha * norm_cooc + (1 - alpha) * sim_mat
         hybrid_dist = 1 - hybrid_sim
         clust_hybrid = AgglomerativeClustering(
             n_clusters=n_clusters,
@@ -81,7 +81,7 @@ def compute_semantics_and_clusters(df_codes: pd.DataFrame, n_clusters: int):
         'Cluster_Hybrid': clust_hybrid
     })
 
-    # Top semantic similarity pairs
+    # Top semantic similarities
     pairs = [
         (codes[i], codes[j], float(sim_mat[i, j]))
         for i in range(len(codes)) for j in range(i+1, len(codes))
@@ -94,13 +94,13 @@ def compute_semantics_and_clusters(df_codes: pd.DataFrame, n_clusters: int):
 
     return co_mat, sim_mat, hybrid_sim, cluster_df, sim_df, sem_ok
 
-# Build a NetworkX graph for PyVis
+# Build NetworkX graph for PyVis
 @st.cache_data
 def build_network(sim_matrix: np.ndarray, labels: list, clusters: np.ndarray, threshold: float):
     G = nx.Graph()
     unique = np.unique(clusters)
     palette = sns.color_palette("hls", max(len(unique), 2))
-    colors = [matplotlib.colors.to_hex(c) for c in palette]
+    colors = [mcolors.to_hex(c) for c in palette]
 
     for i, label in enumerate(labels):
         color = colors[clusters[i] % len(colors)] if clusters[i] >= 0 else '#cccccc'
@@ -112,7 +112,7 @@ def build_network(sim_matrix: np.ndarray, labels: list, clusters: np.ndarray, th
                 G.add_edge(labels[i], labels[j], weight=float(w))
     return G
 
-# Render the PyVis network as HTML
+# Render PyVis network as HTML
 def render_pyvis(G: nx.Graph, height="700px", width="100%"):
     net = Network(height=height, width=width, notebook=False)
     net.from_nx(G)
@@ -126,7 +126,7 @@ threshold_sem = st.sidebar.slider("Semantic similarity threshold", 0.0, 1.0, 0.4
 threshold_hybrid = st.sidebar.slider("Hybrid similarity threshold", 0.0, 1.0, 0.5, step=0.05)
 n_clusters = st.sidebar.slider("Number of clusters", 2, 10, 5)
 
-# File uploader
+# File upload
 uploaded_file = st.sidebar.file_uploader("Upload Excel file (.xlsx/.xls)", type=['xlsx','xls'])
 if not uploaded_file:
     st.info("Upload your MIDUS coding Excel file to start.")
@@ -156,7 +156,7 @@ c3.metric("Total Instances", int(df_codes.values.sum()))
 with st.expander("View code matrix"):
     st.dataframe(df_codes)
 
-# Compute all metrics
+# Compute semantics and clusters
 with st.spinner("Computing..."):
     co_mat, sim_mat, hybrid_sim, cluster_df, sim_df, sem_ok = compute_semantics_and_clusters(df_codes, n_clusters)
 
@@ -171,21 +171,23 @@ if sem_ok:
     st.dataframe(sim_df.head(10))
     st.download_button("Download similarities", sim_df.head(10).to_csv(index=False), "similarities.csv")
 
-# Render networks
+# Render co-occurrence network
 st.subheader("Co-occurrence Network")
 G_co = build_network(co_mat, code_cols, cluster_df['Cluster_Cooccurrence'].values, threshold_cooc)
 components.html(render_pyvis(G_co), height=700)
 
+# Render semantic network
 if sem_ok:
     st.subheader("Semantic Similarity Network")
     G_se = build_network(sim_mat, code_cols, cluster_df['Cluster_Semantic'].values, threshold_sem)
     components.html(render_pyvis(G_se), height=700)
 
+# Render hybrid network
 st.subheader("Hybrid Similarity Network")
 G_hy = build_network(hybrid_sim, code_cols, cluster_df['Cluster_Hybrid'].values, threshold_hybrid)
 components.html(render_pyvis(G_hy), height=700)
 
-# Compute and display Jaccard similarities
+# Compute and display network similarities
 st.subheader("Network Similarities (Jaccard)")
 def edge_set(G): return {frozenset(e) for e in G.edges()}
 e_co = edge_set(G_co)
