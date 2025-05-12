@@ -195,9 +195,16 @@ else:
     def render_pyvis(G: nx.Graph, height="600px"):
         net = PyvisNetwork(height=height, width="100%", directed=False)
         for node, data in G.nodes(data=True):
-            net.add_node(node, label=node, color=data.get("color"))
+            nid = str(node)
+            net.add_node(nid, label=nid, color=data.get("color"))
         for u, v, data in G.edges(data=True):
-            net.add_edge(u, v, value=data.get("weight", 1))
+            uid, vid = str(u), str(v)
+            w = data.get("weight", 1)
+            try:
+                w = float(w)
+            except Exception:
+                w = 1.0
+            net.add_edge(uid, vid, value=w)
         net.repulsion(node_distance=100, central_gravity=0.2)
         html = net.generate_html()
         components.html(html, height=height, scrolling=True)
