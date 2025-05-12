@@ -9,6 +9,8 @@ import seaborn as sns
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.colors
+from pyvis.network import Network as PyvisNetwork
+import streamlit.components.v1 as components
 
 # --- Page Configuration & Styling ---
 st.set_page_config(
@@ -190,79 +192,37 @@ else:
                            sim_df_M3.to_csv(index=False), "similarities_M3.csv")
 
     # Networks
-    st.subheader("Networks Visualization")
-    colA, colB = st.columns(2)
-    # Co-occurrence network
-    with colA:
-        st.markdown("**Co-occurrence Network**")
-        Gc = build_network(co_mat_M2, codes, cluster_df_M2['Cluster_Cooccurrence'].values, threshold_cooc)
-        pos = nx.spring_layout(Gc, seed=42)
-        fig, ax = plt.subplots(figsize=(5,5))
-        nx.draw(Gc, pos, with_labels=True,
-                node_color=[Gc.nodes[n]['color'] for n in Gc.nodes()],
-                edge_color='lightblue', width=2, alpha=0.7, ax=ax)
-        ax.axis('off')
-        st.pyplot(fig)
-    # Semantic network if available
-    if sem_ok_M2:
-        with colB:
-            st.markdown("**Semantic Similarity Network**")
-            Gs = build_network(sim_mat_M2, codes, cluster_df_M2['Cluster_Semantic'].values, threshold_sem)
-            pos2 = nx.kamada_kawai_layout(Gs)
-            fig2, ax2 = plt.subplots(figsize=(5,5))
-            edges = list(Gs.edges(data=True))
-            weights = [attr['weight'] for *_, attr in edges]
-            if weights:
-                wmin, wmax = min(weights), max(weights)
-                for u,v,attr in edges:
-                    w = attr['weight']; norm=(w-wmin)/(wmax-wmin) if wmax>wmin else 1
-                    nx.draw_networkx_edges(Gs, pos2, edgelist=[(u,v)],
-                        width=0.5+3*norm, alpha=0.3+0.7*norm, edge_color='#888888', ax=ax2)
-            nx.draw_networkx_nodes(Gs, pos2,
-                node_size=[300+20*Gs.degree(n) for n in Gs.nodes()],
-                node_color=[Gs.nodes[n]['color'] for n in Gs.nodes()], ax=ax2)
-            nx.draw_networkx_labels(Gs, pos2, font_size=8, ax=ax2)
-            ax2.axis('off')
-            st.pyplot(fig2)
+    st.subheader("Interactive Network Visualizations")
 
-    st.markdown("**M3 Networks**")
-    colC, colD = st.columns(2)
-    with colC:
-        st.markdown("**M3 Co-occurrence Network**")
-        Gc_M3 = build_network(co_mat_M3, codes_M3,
-                              cluster_df_M3['Cluster_Cooccurrence'].values,
-                              threshold_cooc)
-        pos3 = nx.spring_layout(Gc_M3, seed=42)
-        fig3, ax3 = plt.subplots(figsize=(5,5))
-        nx.draw(Gc_M3, pos3, with_labels=True,
-                node_color=[Gc_M3.nodes[n]['color'] for n in Gc_M3.nodes()],
-                edge_color='lightgreen', width=2, alpha=0.7, ax=ax3)
-        ax3.axis('off')
-        st.pyplot(fig3)
-    if sem_ok_M3:
-        with colD:
-            st.markdown("**M3 Semantic Similarity Network**")
-            Gs_M3 = build_network(sim_mat_M3, codes_M3,
-                                  cluster_df_M3['Cluster_Semantic'].values,
-                                  threshold_sem)
-            pos4 = nx.kamada_kawai_layout(Gs_M3)
-            fig4, ax4 = plt.subplots(figsize=(5,5))
-            edges4 = list(Gs_M3.edges(data=True))
-            weights4 = [attr['weight'] for *_, attr in edges4]
-            if weights4:
-                wmin4, wmax4 = min(weights4), max(weights4)
-                for u,v,attr in edges4:
-                    w = attr['weight']; norm=(w-wmin4)/(wmax4-wmin4) if wmax4>wmin4 else 1
-                    nx.draw_networkx_edges(Gs_M3, pos4, edgelist=[(u,v)],
-                        width=0.5+3*norm, alpha=0.3+0.7*norm,
-                        edge_color='#888888', ax=ax4)
-            nx.draw_networkx_nodes(Gs_M3, pos4,
-                node_size=[300+20*Gs_M3.degree(n) for n in Gs_M3.nodes()],
-                node_color=[Gs_M3.nodes[n]['color'] for n in Gs_M3.nodes()],
-                ax=ax4)
-            nx.draw_networkx_labels(Gs_M3, pos4, font_size=8, ax=ax4)
-            ax4.axis('off')
-            st.pyplot(fig4)
+    # Use tabs to separate M2 and M3 views
+    tab1, tab2 = st.tabs(["M2 Networks", "M3 Networks"])
+
+    # Function to render a Pyvis network in Streamlit
+    def render_pyvis(G: nx.Graph, height="600px"):
+        net = PyvisNetwork(height=height, width="100%", directed=False)
+        for node, data in G.nodes(data=True):
+            net.add_node(node, label=node, color=data.get("color"))
+        for u, v, data in G.edges(data=True):
+            net.add_edge(u, v, value=data.get("weight", 1))
+        net.repulsion(node_distance=100, central_gravity=0.2)
+        html = net.generate_html()
+        components.html(html, height=height, scrolling=True)
+
+    # M2 Networks Tab
+    with tab1:
+        st.markdown("### M2 Co-occurrence Network")
+        render_pyvis(Gc, height="400px")
+        if sem_ok_M2:
+            st.markdown("### M2 Semantic Similarity Network")
+            render_pyvis(Gs, height="400px")
+
+    # M3 Networks Tab
+    with tab2:
+        st.markdown("### M3 Co-occurrence Network")
+        render_pyvis(Gc_M3, height="400px")
+        if sem_ok_M3:
+            st.markdown("### M3 Semantic Similarity Network")
+            render_pyvis(Gs_M3, height="400px")
 
     # Inter-time network similarity
     def binary_adj_edges(G): return set(frozenset(e) for e in G.edges())
@@ -273,12 +233,28 @@ else:
     edges_cooc_M2 = binary_adj_edges(Gc)
     edges_cooc_M3 = binary_adj_edges(Gc_M3)
     j_cooc = jaccard(edges_cooc_M2, edges_cooc_M3)
-    st.subheader("Inter-time Network Similarity (Jaccard)")
-    st.metric("Co-occurrence Network", f"{j_cooc:.3f}")
+
+    # --- Graph Edit Distance Metrics ---
+    st.subheader("Graph Edit Distance")
+
+    # Co-occurrence graphs
+    ged_cooc = nx.graph_edit_distance(Gc, Gc_M3)
+    # graph_edit_distance may return a generator; take first value if so
+    if hasattr(ged_cooc, "__iter__"):
+        try:
+            ged_cooc = next(ged_cooc)
+        except StopIteration:
+            pass
+    st.metric("Co-occurrence GED", f"{ged_cooc:.3f}")
+
+    # Semantic graphs, if available
     if sem_ok_M2 and sem_ok_M3:
-        edges_sem_M2 = binary_adj_edges(Gs)
-        edges_sem_M3 = binary_adj_edges(Gs_M3)
-        j_sem = jaccard(edges_sem_M2, edges_sem_M3)
-        st.metric("Semantic Network", f"{j_sem:.3f}")
+        ged_sem = nx.graph_edit_distance(Gs, Gs_M3)
+        if hasattr(ged_sem, "__iter__"):
+            try:
+                ged_sem = next(ged_sem)
+            except StopIteration:
+                pass
+        st.metric("Semantic GED", f"{ged_sem:.3f}")
 
     st.success("Analysis complete!")    
