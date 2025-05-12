@@ -175,13 +175,7 @@ else:
         co_mat_M3, sim_mat_M3, cluster_df_M3, sim_df_M3, sem_ok_M3 = \
             compute_semantics_and_clusters(df_codes_M3, n_clusters_M3)
 
-    # If semantic ok, show semantic threshold slider
-    if sem_ok_M2:
-        threshold_sem_M2 = st.sidebar.slider("M2 Semantic similarity threshold",
-                                             0.0, 1.0, 0.4, step=0.05)
-    if sem_ok_M3:
-        threshold_sem_M3 = st.sidebar.slider("M3 Semantic similarity threshold",
-                                             0.0, 1.0, 0.4, step=0.05)
+
 
     # --- Build network graphs for interactive rendering ---
     Gc = build_network(co_mat_M2, codes,
