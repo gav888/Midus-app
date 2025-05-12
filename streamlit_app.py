@@ -185,13 +185,48 @@ else:
                               cluster_df_M3['Cluster_Semantic'].values,
                               threshold_sem)
 
+    # --- Hybrid clustering & similarity for M2 ---
+    alpha = 0.5
+    norm_co_mat_M2 = co_mat_M2 / co_mat_M2.max()
+    hybrid_sim_M2 = alpha * norm_co_mat_M2 + (1 - alpha) * sim_mat_M2
+    hybrid_dist_M2 = 1 - hybrid_sim_M2
+    clust_hybrid_M2 = AgglomerativeClustering(
+        n_clusters=n_clusters, metric='precomputed', linkage='average'
+    ).fit_predict(hybrid_dist_M2)
+    # Color palette for hybrid
+    palette_hyb2 = sns.color_palette("hls", max(len(np.unique(clust_hybrid_M2)),2))
+    hex_colors_hyb2 = [matplotlib.colors.to_hex(c) for c in palette_hyb2]
+    # Build hybrid network for M2
+    G_hybrid_M2 = nx.Graph()
+    for i, label in enumerate(codes):
+        G_hybrid_M2.add_node(label, color=hex_colors_hyb2[clust_hybrid_M2[i]])
+    flat_vals2 = hybrid_sim_M2[np.triu_indices_from(hybrid_sim_M2, k=1)]
+    threshold_hyb2 = np.percentile(flat_vals2, 75)
+    for i in range(len(codes)):
+        for j in range(i+1, len(codes)):
+            if hybrid_sim_M2[i, j] > threshold_hyb2:
+                G_hybrid_M2.add_edge(codes[i], codes[j], weight=hybrid_sim_M2[i, j])
+
+    # --- Hybrid clustering & similarity for M3 ---
+    norm_co_mat_M3 = co_mat_M3 / co_mat_M3.max()
+    hybrid_sim_M3 = alpha * norm_co_mat_M3 + (1 - alpha) * sim_mat_M3
+    hybrid_dist_M3 = 1 - hybrid_sim_M3
+    clust_hybrid_M3 = AgglomerativeClustering(
+        n_clusters=n_clusters, metric='precomputed', linkage='average'
+    ).fit_predict(hybrid_dist_M3)
+    palette_hyb3 = sns.color_palette("hls", max(len(np.unique(clust_hybrid_M3)),2))
+    hex_colors_hyb3 = [matplotlib.colors.to_hex(c) for c in palette_hyb3]
+    G_hybrid_M3 = nx.Graph()
+    for i, label in enumerate(codes_M3):
+        G_hybrid_M3.add_node(label, color=hex_colors_hyb3[clust_hybrid_M3[i]])
+    flat_vals3 = hybrid_sim_M3[np.triu_indices_from(hybrid_sim_M3, k=1)]
+    threshold_hyb3 = np.percentile(flat_vals3, 75)
+    for i in range(len(codes_M3)):
+        for j in range(i+1, len(codes_M3)):
+            if hybrid_sim_M3[i, j] > threshold_hyb3:
+                G_hybrid_M3.add_edge(codes_M3[i], codes_M3[j], weight=hybrid_sim_M3[i, j])
+
     # --- Interactive Network Visualizations ---
-    st.subheader("Interactive Network Visualizations")
-
-    # Use tabs to separate M2 and M3 views
-    tab1, tab2 = st.tabs(["M2 Networks", "M3 Networks"])
-
-    # Function to render a Pyvis network in Streamlit
     def render_pyvis(G: nx.Graph, height=600):
         net = PyvisNetwork(height=height, width="100%", directed=False)
         for node, data in G.nodes(data=True):
@@ -209,53 +244,22 @@ else:
         html = net.generate_html()
         components.html(html, height=height, scrolling=True)
 
-    # M2 Networks Tab
-    with tab1:
-        st.markdown("### M2 Co-occurrence Network")
-        render_pyvis(Gc, height=400)
-        if sem_ok_M2:
-            st.markdown("### M2 Semantic Similarity Network")
-            render_pyvis(Gs, height=400)
+    st.subheader("M2 Networks")
+    st.markdown("**Co-occurrence Network**")
+    render_pyvis(Gc, height=800)
+    if sem_ok_M2:
+        st.markdown("**Semantic Similarity Network**")
+        render_pyvis(Gs, height=800)
+    st.markdown("**Hybrid Similarity Network**")
+    render_pyvis(G_hybrid_M2, height=800)
 
-    # M3 Networks Tab
-    with tab2:
-        st.markdown("### M3 Co-occurrence Network")
-        render_pyvis(Gc_M3, height=400)
-        if sem_ok_M3:
-            st.markdown("### M3 Semantic Similarity Network")
-            render_pyvis(Gs_M3, height=400)
-
-    # Inter-time network similarity
-    def binary_adj_edges(G): return set(frozenset(e) for e in G.edges())
-    def jaccard(edges1, edges2):
-        if not edges1 and not edges2: return 1.0
-        if not edges1 or not edges2: return 0.0
-        return len(edges1 & edges2) / len(edges1 | edges2)
-    edges_cooc_M2 = binary_adj_edges(Gc)
-    edges_cooc_M3 = binary_adj_edges(Gc_M3)
-    j_cooc = jaccard(edges_cooc_M2, edges_cooc_M3)
-
-    # --- Graph Edit Distance Metrics ---
-    st.subheader("Graph Edit Distance")
-
-    # Co-occurrence graphs
-    ged_cooc = nx.graph_edit_distance(Gc, Gc_M3)
-    # graph_edit_distance may return a generator; take first value if so
-    if hasattr(ged_cooc, "__iter__"):
-        try:
-            ged_cooc = next(ged_cooc)
-        except StopIteration:
-            pass
-    st.metric("Co-occurrence GED", f"{ged_cooc:.3f}")
-
-    # Semantic graphs, if available
-    if sem_ok_M2 and sem_ok_M3:
-        ged_sem = nx.graph_edit_distance(Gs, Gs_M3)
-        if hasattr(ged_sem, "__iter__"):
-            try:
-                ged_sem = next(ged_sem)
-            except StopIteration:
-                pass
-        st.metric("Semantic GED", f"{ged_sem:.3f}")
+    st.subheader("M3 Networks")
+    st.markdown("**Co-occurrence Network**")
+    render_pyvis(Gc_M3, height=800)
+    if sem_ok_M3:
+        st.markdown("**Semantic Similarity Network**")
+        render_pyvis(Gs_M3, height=800)
+    st.markdown("**Hybrid Similarity Network**")
+    render_pyvis(G_hybrid_M3, height=800)
 
     st.success("Analysis complete!")    
