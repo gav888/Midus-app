@@ -192,7 +192,7 @@ else:
     tab1, tab2 = st.tabs(["M2 Networks", "M3 Networks"])
 
     # Function to render a Pyvis network in Streamlit
-    def render_pyvis(G: nx.Graph, height="600px"):
+    def render_pyvis(G: nx.Graph, height=600):
         net = PyvisNetwork(height=height, width="100%", directed=False)
         for node, data in G.nodes(data=True):
             nid = str(node)
@@ -212,18 +212,18 @@ else:
     # M2 Networks Tab
     with tab1:
         st.markdown("### M2 Co-occurrence Network")
-        render_pyvis(Gc, height="400px")
+        render_pyvis(Gc, height=400)
         if sem_ok_M2:
             st.markdown("### M2 Semantic Similarity Network")
-            render_pyvis(Gs, height="400px")
+            render_pyvis(Gs, height=400)
 
     # M3 Networks Tab
     with tab2:
         st.markdown("### M3 Co-occurrence Network")
-        render_pyvis(Gc_M3, height="400px")
+        render_pyvis(Gc_M3, height=400)
         if sem_ok_M3:
             st.markdown("### M3 Semantic Similarity Network")
-            render_pyvis(Gs_M3, height="400px")
+            render_pyvis(Gs_M3, height=400)
 
     # Inter-time network similarity
     def binary_adj_edges(G): return set(frozenset(e) for e in G.edges())
