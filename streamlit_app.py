@@ -227,8 +227,8 @@ else:
                 G_hybrid_M3.add_edge(codes_M3[i], codes_M3[j], weight=hybrid_sim_M3[i, j])
 
     # --- Interactive Network Visualizations ---
-    def render_pyvis(G: nx.Graph, height=600):
-        net = PyvisNetwork(height=height, width="100%", directed=False)
+    def render_pyvis(G: nx.Graph, height=800, width=1200):
+        net = PyvisNetwork(height=f"{height}px", width=f"{width}px", directed=False)
         for node, data in G.nodes(data=True):
             nid = str(node)
             net.add_node(nid, label=nid, color=data.get("color"))
@@ -242,24 +242,24 @@ else:
             net.add_edge(uid, vid, value=w)
         net.repulsion(node_distance=100, central_gravity=0.2)
         html = net.generate_html()
-        components.html(html, height=height, scrolling=True)
+        components.html(html, height=height, width=width, scrolling=True)
 
     st.subheader("M2 Networks")
     st.markdown("**Co-occurrence Network**")
-    render_pyvis(Gc, height=800)
+    render_pyvis(Gc, height=800, width=1200)
     if sem_ok_M2:
         st.markdown("**Semantic Similarity Network**")
-        render_pyvis(Gs, height=800)
+        render_pyvis(Gs, height=800, width=1200)
     st.markdown("**Hybrid Similarity Network**")
-    render_pyvis(G_hybrid_M2, height=800)
+    render_pyvis(G_hybrid_M2, height=800, width=1200)
 
     st.subheader("M3 Networks")
     st.markdown("**Co-occurrence Network**")
-    render_pyvis(Gc_M3, height=800)
+    render_pyvis(Gc_M3, height=800, width=1200)
     if sem_ok_M3:
         st.markdown("**Semantic Similarity Network**")
-        render_pyvis(Gs_M3, height=800)
+        render_pyvis(Gs_M3, height=800, width=1200)
     st.markdown("**Hybrid Similarity Network**")
-    render_pyvis(G_hybrid_M3, height=800)
+    render_pyvis(G_hybrid_M3, height=800, width=1200)
 
     st.success("Analysis complete!")    
