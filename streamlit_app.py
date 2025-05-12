@@ -169,29 +169,23 @@ else:
     if sem_ok_M2 or sem_ok_M3:
         threshold_sem = st.sidebar.slider("Semantic similarity threshold", 0.0, 1.0, 0.4, step=0.05)
 
-    # Show cluster assignments
-    st.subheader("M2 Cluster Assignments")
-    st.dataframe(cluster_df_M2)
-    st.download_button("Download M2 cluster assignments",
-                       cluster_df_M2.to_csv(index=False), "clusters_M2.csv")
-    st.subheader("M3 Cluster Assignments")
-    st.dataframe(cluster_df_M3)
-    st.download_button("Download M3 cluster assignments",
-                       cluster_df_M3.to_csv(index=False), "clusters_M3.csv")
-
-    # Show top similarities if available
+    # --- Build network graphs for interactive rendering ---
+    Gc = build_network(co_mat_M2, codes,
+                       cluster_df_M2['Cluster_Cooccurrence'].values,
+                       threshold_cooc)
     if sem_ok_M2:
-        st.subheader("M2 Top Semantic Similarities")
-        st.dataframe(sim_df_M2.head(15))
-        st.download_button("Download M2 semantic similarities",
-                           sim_df_M2.to_csv(index=False), "similarities_M2.csv")
+        Gs = build_network(sim_mat_M2, codes,
+                           cluster_df_M2['Cluster_Semantic'].values,
+                           threshold_sem)
+    Gc_M3 = build_network(co_mat_M3, codes_M3,
+                          cluster_df_M3['Cluster_Cooccurrence'].values,
+                          threshold_cooc)
     if sem_ok_M3:
-        st.subheader("M3 Top Semantic Similarities")
-        st.dataframe(sim_df_M3.head(15))
-        st.download_button("Download M3 semantic similarities",
-                           sim_df_M3.to_csv(index=False), "similarities_M3.csv")
+        Gs_M3 = build_network(sim_mat_M3, codes_M3,
+                              cluster_df_M3['Cluster_Semantic'].values,
+                              threshold_sem)
 
-    # Networks
+    # --- Interactive Network Visualizations ---
     st.subheader("Interactive Network Visualizations")
 
     # Use tabs to separate M2 and M3 views
