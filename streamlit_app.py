@@ -116,16 +116,17 @@ uploaded_file = st.sidebar.file_uploader(
 st.sidebar.header("M2 Settings")
 n_clusters_M2 = st.sidebar.slider("M2 # Clusters", 2, 10, 5)
 threshold_cooc_M2 = st.sidebar.slider("M2 Co-occurrence threshold", 1, 20, 5)
+threshold_sem_M2 = st.sidebar.slider(
+    "M2 Semantic similarity threshold", 0.0, 1.0, 0.4, step=0.05
+)
 
 # M3 settings
 st.sidebar.header("M3 Settings")
 n_clusters_M3 = st.sidebar.slider("M3 # Clusters", 2, 10, 5)
 threshold_cooc_M3 = st.sidebar.slider("M3 Co-occurrence threshold", 1, 20, 5)
-
-# Placeholder for semantic thresholds
-def placeholder(): return None
-threshold_sem_M2 = placeholder()
-threshold_sem_M3 = placeholder()
+threshold_sem_M3 = st.sidebar.slider(
+    "M3 Semantic similarity threshold", 0.0, 1.0, 0.4, step=0.05
+)
 
 # --- Main App Logic ---
 if not uploaded_file:
