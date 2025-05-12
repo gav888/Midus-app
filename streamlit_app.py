@@ -111,12 +111,21 @@ st.sidebar.header("Data & Settings")
 uploaded_file = st.sidebar.file_uploader(
     "Upload Excel file (.xlsx/.xls)", type=['xlsx', 'xls']
 )
-n_clusters = st.sidebar.slider("# Clusters", 2, 10, 5)
-threshold_cooc = st.sidebar.slider("Co-occurrence threshold", 1, 20, 5)
 
-# Semantic threshold slider only shown when semantic available preview
+# M2 settings
+st.sidebar.header("M2 Settings")
+n_clusters_M2 = st.sidebar.slider("M2 # Clusters", 2, 10, 5)
+threshold_cooc_M2 = st.sidebar.slider("M2 Co-occurrence threshold", 1, 20, 5)
+
+# M3 settings
+st.sidebar.header("M3 Settings")
+n_clusters_M3 = st.sidebar.slider("M3 # Clusters", 2, 10, 5)
+threshold_cooc_M3 = st.sidebar.slider("M3 Co-occurrence threshold", 1, 20, 5)
+
+# Placeholder for semantic thresholds
 def placeholder(): return None
-threshold_sem = placeholder()
+threshold_sem_M2 = placeholder()
+threshold_sem_M3 = placeholder()
 
 # --- Main App Logic ---
 if not uploaded_file:
@@ -161,29 +170,33 @@ else:
     # Compute everything
     with st.spinner("Calculating co-occurrence and semantic clusters..."):
         co_mat_M2, sim_mat_M2, cluster_df_M2, sim_df_M2, sem_ok_M2 = \
-            compute_semantics_and_clusters(df_codes, n_clusters)
+            compute_semantics_and_clusters(df_codes, n_clusters_M2)
         co_mat_M3, sim_mat_M3, cluster_df_M3, sim_df_M3, sem_ok_M3 = \
-            compute_semantics_and_clusters(df_codes_M3, n_clusters)
+            compute_semantics_and_clusters(df_codes_M3, n_clusters_M3)
 
     # If semantic ok, show semantic threshold slider
-    if sem_ok_M2 or sem_ok_M3:
-        threshold_sem = st.sidebar.slider("Semantic similarity threshold", 0.0, 1.0, 0.4, step=0.05)
+    if sem_ok_M2:
+        threshold_sem_M2 = st.sidebar.slider("M2 Semantic similarity threshold",
+                                             0.0, 1.0, 0.4, step=0.05)
+    if sem_ok_M3:
+        threshold_sem_M3 = st.sidebar.slider("M3 Semantic similarity threshold",
+                                             0.0, 1.0, 0.4, step=0.05)
 
     # --- Build network graphs for interactive rendering ---
     Gc = build_network(co_mat_M2, codes,
                        cluster_df_M2['Cluster_Cooccurrence'].values,
-                       threshold_cooc)
+                       threshold_cooc_M2)
     if sem_ok_M2:
         Gs = build_network(sim_mat_M2, codes,
                            cluster_df_M2['Cluster_Semantic'].values,
-                           threshold_sem)
+                           threshold_sem_M2)
     Gc_M3 = build_network(co_mat_M3, codes_M3,
                           cluster_df_M3['Cluster_Cooccurrence'].values,
-                          threshold_cooc)
+                          threshold_cooc_M3)
     if sem_ok_M3:
         Gs_M3 = build_network(sim_mat_M3, codes_M3,
                               cluster_df_M3['Cluster_Semantic'].values,
-                              threshold_sem)
+                              threshold_sem_M3)
 
     # --- Hybrid clustering & similarity for M2 ---
     alpha = 0.5
@@ -191,7 +204,7 @@ else:
     hybrid_sim_M2 = alpha * norm_co_mat_M2 + (1 - alpha) * sim_mat_M2
     hybrid_dist_M2 = 1 - hybrid_sim_M2
     clust_hybrid_M2 = AgglomerativeClustering(
-        n_clusters=n_clusters, metric='precomputed', linkage='average'
+        n_clusters=n_clusters_M2, metric='precomputed', linkage='average'
     ).fit_predict(hybrid_dist_M2)
     # Color palette for hybrid
     palette_hyb2 = sns.color_palette("hls", max(len(np.unique(clust_hybrid_M2)),2))
@@ -212,7 +225,7 @@ else:
     hybrid_sim_M3 = alpha * norm_co_mat_M3 + (1 - alpha) * sim_mat_M3
     hybrid_dist_M3 = 1 - hybrid_sim_M3
     clust_hybrid_M3 = AgglomerativeClustering(
-        n_clusters=n_clusters, metric='precomputed', linkage='average'
+        n_clusters=n_clusters_M3, metric='precomputed', linkage='average'
     ).fit_predict(hybrid_dist_M3)
     palette_hyb3 = sns.color_palette("hls", max(len(np.unique(clust_hybrid_M3)),2))
     hex_colors_hyb3 = [matplotlib.colors.to_hex(c) for c in palette_hyb3]
