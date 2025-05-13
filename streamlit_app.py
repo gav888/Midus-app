@@ -221,6 +221,7 @@ else:
     st.subheader("Cluster Validity Across k=2 to 8 (M3)")
     st.dataframe(eval_df_M3)
 
+    st.subheader("Co-occurrence cluster metrics")
     # Identify best k based on average silhouette
     best_M2 = eval_df_M2.loc[eval_df_M2['avg_sil'].idxmax()]
     best_M3 = eval_df_M3.loc[eval_df_M3['avg_sil'].idxmax()]
@@ -233,6 +234,7 @@ else:
     best_db_M3 = eval_df_M3.loc[eval_df_M3['db_co'].idxmin()]
     st.markdown(f"**Best M2 k by Davies-Bouldin (co-occurrence):** {best_db_M2['k']} (db_co={best_db_M2['db_co']:.3f})")
     st.markdown(f"**Best M3 k by Davies-Bouldin (co-occurrence):** {best_db_M3['k']} (db_co={best_db_M3['db_co']:.3f})")
+    st.subheader("Semantic similarity cluster metrics")
 
     # Identify best k based on semantic silhouette
     best_sil_sem_M2 = eval_df_M2.loc[eval_df_M2['silhouette_sem'].idxmax()]
