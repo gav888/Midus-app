@@ -227,11 +227,24 @@ else:
     st.markdown(f"**Best M2 k by average silhouette:** {best_M2['k']} (avg_sil={best_M2['avg_sil']:.3f})")
     st.markdown(f"**Best M3 k by average silhouette:** {best_M3['k']} (avg_sil={best_M3['avg_sil']:.3f})")
 
+
     # Identify best k based on Davies-Bouldin (lower is better)
     best_db_M2 = eval_df_M2.loc[eval_df_M2['db_co'].idxmin()]
     best_db_M3 = eval_df_M3.loc[eval_df_M3['db_co'].idxmin()]
     st.markdown(f"**Best M2 k by Davies-Bouldin (co-occurrence):** {best_db_M2['k']} (db_co={best_db_M2['db_co']:.3f})")
     st.markdown(f"**Best M3 k by Davies-Bouldin (co-occurrence):** {best_db_M3['k']} (db_co={best_db_M3['db_co']:.3f})")
+
+    # Identify best k based on semantic silhouette
+    best_sil_sem_M2 = eval_df_M2.loc[eval_df_M2['silhouette_sem'].idxmax()]
+    best_sil_sem_M3 = eval_df_M3.loc[eval_df_M3['silhouette_sem'].idxmax()]
+    st.markdown(f"**Best M2 k by semantic silhouette:** {best_sil_sem_M2['k']} (silhouette_sem={best_sil_sem_M2['silhouette_sem']:.3f})")
+    st.markdown(f"**Best M3 k by semantic silhouette:** {best_sil_sem_M3['k']} (silhouette_sem={best_sil_sem_M3['silhouette_sem']:.3f})")
+
+    # Identify best k based on Davies-Bouldin for semantic similarity
+    best_db_sem_M2 = eval_df_M2.loc[eval_df_M2['db_sem'].idxmin()]
+    best_db_sem_M3 = eval_df_M3.loc[eval_df_M3['db_sem'].idxmin()]
+    st.markdown(f"**Best M2 k by Davies-Bouldin (semantic):** {best_db_sem_M2['k']} (db_sem={best_db_sem_M2['db_sem']:.3f})")
+    st.markdown(f"**Best M3 k by Davies-Bouldin (semantic):** {best_db_sem_M3['k']} (db_sem={best_db_sem_M3['db_sem']:.3f})")
 
 
 
