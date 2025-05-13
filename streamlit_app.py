@@ -13,6 +13,7 @@ from pyvis.network import Network as PyvisNetwork
 import streamlit.components.v1 as components
 
 from sklearn.metrics import silhouette_score, calinski_harabasz_score
+from sklearn.metrics import davies_bouldin_score
 
 # --- Page Configuration & Styling ---
 st.set_page_config(
@@ -187,16 +188,21 @@ else:
             labels_co = AgglomerativeClustering(n_clusters=k).fit_predict(co_mat)
             sil_co = silhouette_score(co_mat, labels_co, metric='euclidean')
             ch_co  = calinski_harabasz_score(co_mat, labels_co)
+            db_co = davies_bouldin_score(co_mat, labels_co)
             # Semantic clustering validity
             labels_sem = AgglomerativeClustering(n_clusters=k).fit_predict(embeddings)
             sil_sem = silhouette_score(embeddings, labels_sem, metric='cosine')
             ch_sem  = calinski_harabasz_score(embeddings, labels_sem)
+            db_sem = davies_bouldin_score(embeddings, labels_sem)
             results.append({
                 'k': k,
                 'silhouette_co': sil_co,
                 'ch_co': ch_co,
                 'silhouette_sem': sil_sem,
-                'ch_sem': ch_sem
+                'ch_sem': ch_sem,
+                'avg_sil': (sil_co + sil_sem) / 2,
+                'db_co': db_co,
+                'db_sem': db_sem
             })
         return pd.DataFrame(results)
 
@@ -214,6 +220,18 @@ else:
     st.dataframe(eval_df_M2)
     st.subheader("Cluster Validity Across k=2 to 8 (M3)")
     st.dataframe(eval_df_M3)
+
+    # Identify best k based on average silhouette
+    best_M2 = eval_df_M2.loc[eval_df_M2['avg_sil'].idxmax()]
+    best_M3 = eval_df_M3.loc[eval_df_M3['avg_sil'].idxmax()]
+    st.markdown(f"**Best M2 k by average silhouette:** {best_M2['k']} (avg_sil={best_M2['avg_sil']:.3f})")
+    st.markdown(f"**Best M3 k by average silhouette:** {best_M3['k']} (avg_sil={best_M3['avg_sil']:.3f})")
+
+    # Identify best k based on Davies-Bouldin (lower is better)
+    best_db_M2 = eval_df_M2.loc[eval_df_M2['db_co'].idxmin()]
+    best_db_M3 = eval_df_M3.loc[eval_df_M3['db_co'].idxmin()]
+    st.markdown(f"**Best M2 k by Davies-Bouldin (co-occurrence):** {best_db_M2['k']} (db_co={best_db_M2['db_co']:.3f})")
+    st.markdown(f"**Best M3 k by Davies-Bouldin (co-occurrence):** {best_db_M3['k']} (db_co={best_db_M3['db_co']:.3f})")
 
 
 
