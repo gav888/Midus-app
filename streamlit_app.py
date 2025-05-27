@@ -189,6 +189,8 @@ if uploaded:
                     ax3.hist(sil_sem_vals[cl2['SemCluster']==c], bins=20, alpha=0.5, label=f'Sem{c}')
                 ax3.legend()
                 st.pyplot(fig3)
+                st.subheader("Enhanced Semantic Cluster Stability Summary")
+                st.dataframe(df_stab)
             else:
                 st.warning("Semantic Fit analysis unavailable: embeddings missing.")
 
