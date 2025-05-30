@@ -16,6 +16,11 @@ from sklearn.metrics import (
 from io import BytesIO
 
 # ─── Utility Functions ─────────────────────────────────────────────────────────
+def compute_hybrid(co_matrix, emb_matrix, k):
+    hybrid_sim = 0.5 * (co_matrix / co_matrix.max()) + 0.5 * (cosine_similarity(emb_matrix))
+    np.fill_diagonal(hybrid_sim, 0)
+    clustering = AgglomerativeClustering(n_clusters=k).fit_predict(hybrid_sim)
+    return hybrid_sim, clustering
 def compute(df_codes, k):
     codes = df_codes.columns.tolist()
     co = df_codes.T.dot(df_codes).values
@@ -79,11 +84,13 @@ st.title("MIDUS Semantic-Only Clustering & Networks")
 
 # Sidebar controls
 st.sidebar.header("Settings")
+st.sidebar.markdown("### Semantic Analysis Configuration")
 uploaded = st.sidebar.file_uploader("Upload Excel file", type=["xls", "xlsx"])
 if uploaded:
     sheets = pd.ExcelFile(uploaded).sheet_names
     sheet = st.sidebar.selectbox("Select sheet", sheets)
     k = st.sidebar.slider("# clusters (Semantic)", 2, 10, 5)
+    k_hybrid = st.sidebar.slider("# clusters (Hybrid)", 2, 10, 5)
     thr_sem = st.sidebar.slider("Semantic threshold", 0.0, 1.0, 0.4, step=0.05)
     run = st.sidebar.button("Run Semantic Analysis")
 
@@ -105,6 +112,19 @@ if uploaded:
         # Compute with semantic focus
         co2, sim2, emb2, cl2, ok2 = compute(df2, k)
         co3, sim3, emb3, cl3, ok3 = compute(df3, k)
+
+        # Hybrid computations for M2
+        if ok2:
+            sim_hybrid2, cl_hybrid2 = compute_hybrid(co2, emb2, k_hybrid)
+        else:
+            sim_hybrid2, cl_hybrid2 = None, np.full(len(df2.columns), -1)
+
+        df_hybrid = pd.DataFrame({
+            'Code': df2.columns,
+            'HybridCluster': cl_hybrid2
+        })
+        pal_h = sns.color_palette('Set2', max(2, k_hybrid))
+        df_hybrid['color'] = [mcolors.to_hex(pal_h[i % len(pal_h)]) for i in cl_hybrid2]
 
         ks = list(range(2, 9))
         sem_val = evaluate(sim2 if ok2 else np.zeros_like(sim2), emb2, ks)
@@ -146,11 +166,28 @@ if uploaded:
             })
         df_stab = pd.DataFrame(stability).sort_values('M2_cluster')
 
-        # Tabs: semantic-only
-        t1, t2, t3, t4, t5 = st.tabs([
-            "Semantic Validity", "Semantic Assignments",
-            "Semantic Network", "M2 Internal Semantic", "Fit M2→M3 Semantic"
+        # Tabs: semantic-only + hybrid
+        t1, t2, t3, t4, t5, t6, t7 = st.tabs([
+            "Semantic Validity", "Semantic Assignments", "Semantic Network",
+            "M2 Internal Semantic", "Fit M2→M3 Semantic",
+            "Hybrid Network", "Hybrid Clustering"
         ])
+        with t6:
+            st.subheader("Hybrid Network (M2)")
+            if sim_hybrid2 is not None:
+                fig, ax = plt.subplots()
+                G_hybrid = make_graph(sim_hybrid2, df2.columns.tolist(), cl_hybrid2, thr_sem)
+                pos = nx.spring_layout(G_hybrid, seed=1)
+                nx.draw(G_hybrid, pos,
+                        node_color=[mcolors.to_hex(pal_h[i % len(pal_h)]) for i in cl_hybrid2],
+                        with_labels=True, ax=ax)
+                st.pyplot(fig)
+            else:
+                st.warning("Hybrid network computation unavailable.")
+
+        with t7:
+            st.subheader("Hybrid Clustering Assignments (M2)")
+            st.dataframe(df_hybrid[['Code', 'HybridCluster']])
 
         with t1:
             st.subheader("Semantic Clustering Validity")
@@ -202,7 +239,9 @@ if uploaded:
             sem_val.to_excel(writer, sheet_name='M2_Internal_Semantic', index=False)
             df_fit.to_excel(writer, sheet_name='Fit_Semantic_Metrics', index=False)
             df_stab.to_excel(writer, sheet_name='Semantic_Stability', index=False)
+            df_hybrid[['Code','HybridCluster']].to_excel(writer, sheet_name='Hybrid_Assignments', index=False)
         buf.seek(0)
+        st.sidebar.markdown("### Export Results")
         st.sidebar.download_button(
             "Download Semantic Results", buf, "semantic_results.xlsx",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
