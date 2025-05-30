@@ -93,7 +93,7 @@ if uploaded:
     k_hybrid = st.sidebar.slider("# clusters (Hybrid)", 2, 10, 5)
     thr_sem = st.sidebar.slider("Semantic threshold", 0.0, 1.0, 0.4, step=0.05)
     thr_hybrid = st.sidebar.slider("Hybrid threshold", 0.0, 1.0, 0.4, step=0.05)
-    run = st.sidebar.button("Run Semantic Analysis")
+    run = st.sidebar.button("Run Analysis")
 
     if run:
         df = pd.read_excel(uploaded, sheet_name=sheet)
