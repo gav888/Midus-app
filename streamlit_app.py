@@ -79,12 +79,12 @@ def make_graph(matrix, labels, clusters, thr):
 # ────────────────────────────────────────────────────────────────────────────────
 
 # ─── Streamlit App ────────────────────────────────────────────────────────────
-st.set_page_config(page_title="MIDUS Semantic Analysis", layout="wide")
-st.title("MIDUS Semantic-Only Clustering & Networks")
+st.set_page_config(page_title="MIDUS Code Clustering & Network Analysis", layout="wide")
+st.title("MIDUS Code Clustering & Network Analysis")
 
 # Sidebar controls
 st.sidebar.header("Settings")
-st.sidebar.markdown("### Semantic Analysis Configuration")
+st.sidebar.markdown("### Analysis Configuration")
 uploaded = st.sidebar.file_uploader("Upload Excel file", type=["xls", "xlsx"])
 if uploaded:
     sheets = pd.ExcelFile(uploaded).sheet_names
@@ -92,6 +92,7 @@ if uploaded:
     k = st.sidebar.slider("# clusters (Semantic)", 2, 10, 5)
     k_hybrid = st.sidebar.slider("# clusters (Hybrid)", 2, 10, 5)
     thr_sem = st.sidebar.slider("Semantic threshold", 0.0, 1.0, 0.4, step=0.05)
+    thr_hybrid = st.sidebar.slider("Hybrid threshold", 0.0, 1.0, 0.4, step=0.05)
     run = st.sidebar.button("Run Semantic Analysis")
 
     if run:
@@ -176,7 +177,7 @@ if uploaded:
             st.subheader("Hybrid Network (M2)")
             if sim_hybrid2 is not None:
                 fig, ax = plt.subplots()
-                G_hybrid = make_graph(sim_hybrid2, df2.columns.tolist(), cl_hybrid2, thr_sem)
+                G_hybrid = make_graph(sim_hybrid2, df2.columns.tolist(), cl_hybrid2, thr_hybrid)
                 pos = nx.spring_layout(G_hybrid, seed=1)
                 nx.draw(G_hybrid, pos,
                         node_color=[mcolors.to_hex(pal_h[i % len(pal_h)]) for i in cl_hybrid2],
@@ -243,6 +244,6 @@ if uploaded:
         buf.seek(0)
         st.sidebar.markdown("### Export Results")
         st.sidebar.download_button(
-            "Download Semantic Results", buf, "semantic_results.xlsx",
+            "Download Analysis Results", buf, "semantic_results.xlsx",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
