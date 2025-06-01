@@ -55,12 +55,14 @@ def evaluate(matrix, emb, ks):
             ls = AgglomerativeClustering(n_clusters=k).fit_predict(emb)
             sil = silhouette_score(emb, ls)
             db = davies_bouldin_score(emb, ls)
+            ch = calinski_harabasz_score(emb, ls)
         else:
-            sil, db = None, None
+            sil, db, ch = None, None, None
         rows.append({
             'k': k,
             'sil_sem': sil,
-            'db_sem': db
+            'db_sem': db,
+            'ch_sem': ch
         })
     return pd.DataFrame(rows)
 
